@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.demo.model.Filiere;
 import com.example.demo.model.Niveau;
+import com.example.demo.model.Semestre;
 import com.example.demo.service.FiliereService;
 import com.example.demo.service.NiveauService;
 
@@ -15,22 +16,21 @@ import java.util.List;
 @RestController
 @RequestMapping("/niveaux")
 public class NiveauController {
-
     @Autowired
     private NiveauService niveauService;
 
-    @Autowired
+      @Autowired
     private FiliereService filiereService;
+
 
     @GetMapping
     public List<Niveau> getAllNiveaux() {
-        return niveauService.findAll();
+        return niveauService.getAllNiveaux();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Niveau> getNiveauById(@PathVariable Long id) {
-        Niveau niveau = niveauService.findById(id);
-        return niveau != null ? ResponseEntity.ok(niveau) : ResponseEntity.notFound().build();
+    public Niveau getNiveauById(@PathVariable Long id) {    
+        return niveauService.getNiveauById(id);
     }
 
     @PostMapping
@@ -38,28 +38,25 @@ public class NiveauController {
         return niveauService.saveNiveau(niveau);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Niveau> updateNiveau(@PathVariable Long id, @RequestBody Niveau niveauDetails) {
-        Niveau niveau = niveauService.findById(id);
-        if (niveau == null) {
-            return ResponseEntity.notFound().build();
-        }
-        niveau.setNomNiveau(niveauDetails.getNomNiveau());
-        return ResponseEntity.ok(niveauService.saveNiveau(niveau));
+    @DeleteMapping("/{id}")
+    public void deleteNiveau(@PathVariable Long id) {
+        niveauService.deleteNiveau(id);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteNiveau(@PathVariable Long id) {
-        niveauService.deleteNiveau(id);
-        return ResponseEntity.noContent().build();
+      @GetMapping("/{id}/semestres")
+    public List<Semestre> getSemestresByNiveau(@PathVariable Long id) {
+        return niveauService.getSemestresByNiveau(id);
     }
-    // Get niveaux by filiere ID
+
+
+    //Niveaux pour chaque filiere
+
     @GetMapping("/filiere/{filiereId}")
     public List<Niveau> getNiveauxByFiliere(@PathVariable Long filiereId) {
-        return niveauService.findByFiliereId(filiereId);
+        return niveauService.getNiveauxByFiliere(filiereId);
     }
-
-
+    
+    
     @PostMapping("/filiere/{filiereId}")
     public ResponseEntity<?> addNiveauToFiliere(@PathVariable Long filiereId, @RequestBody Niveau niveauDetails) {
     // Vérifier si la filière existe
@@ -81,16 +78,37 @@ public class NiveauController {
     return ResponseEntity.status(HttpStatus.CREATED).body(savedNiveau);
    }
 
-
-@GetMapping("/filiere/{filiereId}/niveau-exist")
-public ResponseEntity<Boolean> checkNiveauExist(@PathVariable Long filiereId, @RequestParam String nomNiveau) {
-    Filiere filiere = filiereService.findById(filiereId);
-    if (filiere == null) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(false);
+      // Vérifier si un niveau existe par ID
+    // Vérifier si un niveau existe pour une filière donnée
+    @GetMapping("/exists")
+    public ResponseEntity<Boolean> checkNiveauExists(
+            @RequestParam String nomNiveau,
+            @RequestParam Long filiereId) {
+        boolean exists = niveauService.niveauExists(nomNiveau, filiereId);
+        return ResponseEntity.ok(exists);
     }
-    
-    boolean exists = niveauService.existsByNomNiveauAndFiliere(nomNiveau, filiere);
-    return ResponseEntity.ok(exists);
+
+
+//Pour recuperer l'id d'une filiere
+    @GetMapping("/{niveauId}/filiere")
+public ResponseEntity<Filiere> getFiliereByNiveauId(@PathVariable Long niveauId) {
+    // Récupérer le niveau
+    Niveau niveau = niveauService.getNiveauById(niveauId);
+    if (niveau == null) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+    }
+
+    // Récupérer la filière associée au niveau
+    Filiere filiere = niveau.getFiliere();
+    if (filiere == null) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+    }
+
+    return ResponseEntity.ok(filiere);
 }
+
+
+
+
 
 }

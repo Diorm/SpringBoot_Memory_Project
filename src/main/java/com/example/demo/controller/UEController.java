@@ -15,103 +15,118 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.demo.model.Filiere;
+import com.example.demo.model.Niveau;
 import com.example.demo.model.Semestre;
 import com.example.demo.model.UE;
+import com.example.demo.service.FiliereService;
+import com.example.demo.service.NiveauService;
 import com.example.demo.service.SemestreService;
 import com.example.demo.service.UEService;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.PutMapping;
 
 
 
 @RestController
 @RequestMapping("/ues")
 public class UEController {
-
     @Autowired
     private UEService ueService;
 
     @Autowired
-    private SemestreService semestreService;
+    public SemestreService semestreService;
+
+    @Autowired
+    public NiveauService niveauService;
+
+    @Autowired
+    private FiliereService filiereService;
 
     @GetMapping
     public List<UE> getAllUEs() {
-        return ueService.findAll();
+        return ueService.getAllUEs();
     }
-
-
 
     @GetMapping("/{id}")
-    public ResponseEntity<UE> getUEById(@PathVariable Long id) {
-        UE ue = ueService.findById(id);
-        return ue != null ? ResponseEntity.ok(ue) : ResponseEntity.notFound().build();
+    public UE getUEById(@PathVariable Long id) {
+        return ueService.getUEById(id);
     }
 
-
-
-    @PostMapping("/{id}")
-    public UE createUE(@RequestBody UE ue) {
-        return ueService.saveUE(ue);
-    }
-
-
-
-
-    @PutMapping("/{id}")
-    public ResponseEntity<UE> updateUE(@PathVariable Long id, @RequestBody UE ueDetails) {
-        UE ue = ueService.findById(id);
-        if (ue == null) {
-            return ResponseEntity.notFound().build();
-        }
-        ue.setNomUE(ueDetails.getNomUE());
-        return ResponseEntity.ok(ueService.saveUE(ue));
-    }
-  
+    // @PostMapping
+    // public UE createUE(@RequestBody UE ue) {
+    //     return ueService.saveUE(ue);
+    // }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUE(@PathVariable Long id) {
+    public void deleteUE(@PathVariable Long id) {
         ueService.deleteUE(id);
-        return ResponseEntity.noContent().build();
-    }   
-
-
-    //GET /ues/semestre/{id}
-    @GetMapping("/semestre/{semestreId}")
-    public List<UE> getUEBySemestre(@PathVariable Long semestreId) {
-        return ueService.getUE(semestreId);
     }
 
+    // @GetMapping("/{id}/modules")
+    // public List<CourseModule> getModulesByUE(@PathVariable Long id) {
+    //     return ueService.getModulesByUE(id);
+    // }
 
-    @PostMapping("/semestre/{semestreId}")
-    public ResponseEntity<?> addUeToSemestre(@PathVariable Long semestreId, @RequestBody UE ueDetail) {
-      //verifier si le semestre existe
-      Semestre semestre = semestreService.findById(semestreId);
-      if (semestre == null) {
-          return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Semestre non trouvé");
-        
-      }
 
-      //verifier si l'ue existe
-      boolean ueExists = ueService.existsByNomUEAndSemestreId(ueDetail.getNomUE(), semestre);
-        if (ueExists) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("UE existe déjà");
-        }
-
-        //creer l'ue
-        ueDetail.setSemestre(semestre);
-        UE savedUE = ueService.saveUE(ueDetail);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedUE);
+    //UE pour chaque semestre
+    @GetMapping("semestre/{semestreId}")
+    public List<UE> getUEBySemestre(@PathVariable Long semestreId){
+        return ueService.getUEBySemestre(semestreId);
     }
-
-
-    @GetMapping("/semestre/{semestreId}/semestre-exist")
-   public ResponseEntity<Boolean>checkUeExist(@RequestParam Long semestreId, @PathVariable String nomSemestre){
-       Semestre semestre = semestreService.findById(semestreId);
-       if (semestre == null) {
-           return ResponseEntity.status(HttpStatus.NOT_FOUND).body(false);
-       }
-       boolean ueExists = ueService.existsByNomUEAndSemestreId(nomSemestre, semestre);
-       return ResponseEntity.ok(ueExists);
-   }
    
+    
+
+    //Ajouter une UE a un Semestre
+
+    @PostMapping("/{semestreId}/ue")
+    public ResponseEntity<?> addUEToSemestre(@PathVariable Long semestreId, @RequestBody UE ueDetail) {
+        // Vérifier l'existence du semestre
+        Semestre semestre = semestreService.getSemestreById(semestreId);
+        if (semestre == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Semestre Non Trouvé");
+        }
+    
+        // Vérifier l'existence du niveau
+        if (ueDetail.getNiveau() == null || ueDetail.getNiveau().getId() == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Niveau manquant ou invalide");
+        }
+        Niveau niveau = niveauService.getNiveauById(ueDetail.getNiveau().getId());
+        if (niveau == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Niveau non Trouvé");
+        }
+    
+        // Vérifier l'existence de la filière
+        if (ueDetail.getFiliere() == null || ueDetail.getFiliere().getId() == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Filière manquante ou invalide");
+        }
+        Filiere filiere = filiereService.getFiliereById(ueDetail.getFiliere().getId());
+        if (filiere == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Filiere non Trouvé");
+        }
+    
+        // Associer le semestre, le niveau et la filière à l'UE
+        ueDetail.setSemestre(semestre);
+        ueDetail.setNiveau(niveau);
+        ueDetail.setFiliere(filiere);
+    
+        // Enregistrer l'UE
+        UE savedUe = ueService.saveUE(ueDetail);
+    
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedUe);
+    }
+
+
+
+
+
+
+
+    ///Existence de l'UE
+    @GetMapping("exists")
+   public ResponseEntity<Boolean> checkUEExist(@RequestParam String nomUE,@RequestParam Long semestreId){
+        boolean exists=ueService.ueExist(nomUE, semestreId);
+
+        return ResponseEntity.ok(exists);
+   }
+    
 }

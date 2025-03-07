@@ -14,6 +14,8 @@ public interface SemestreRepository  extends JpaRepository<Semestre,Long>{
     List<Semestre> findByNiveauId(Long niveauId);
     List<Semestre> findByNomSemestre(String nomSemestre);
     boolean existsByNomSemestreAndNiveau(String nomSemestre, Niveau niveau);
+    boolean existsByNomSemestreAndNiveauId(String nomSemestre, Long niveauId);
+    
 
 
    
