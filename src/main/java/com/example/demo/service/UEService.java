@@ -2,6 +2,7 @@ package com.example.demo.service;
 
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,11 +21,21 @@ public class UEService {
         return ueRepository.findAll();
     }
 
-    public UE getUEById(Long id) {
-        return ueRepository.findById(id).orElseThrow(() -> new RuntimeException("UE non trouvée"));
-    }
+    // public UE getUEById(Long id) {
+    //     return ueRepository.findById(id).orElseThrow(() -> new RuntimeException("UE non trouvée"));
+    // }
 
+    public Optional<UE> getUEById(Long ueId) {
+        return ueRepository.findById(ueId); // Assurez-vous que le repository retourne Optional
+    }
+    // public UE saveUE(UE ue) {
+    //     return ueRepository.save(ue);
+    // }
     public UE saveUE(UE ue) {
+        // Vérifie si l'UE a bien été associée à une filière, niveau et semestre
+        if (ue.getFiliere() == null || ue.getNiveau() == null || ue.getSemestre() == null) {
+            throw new IllegalArgumentException("Filière, Niveau ou Semestre manquant");
+        }
         return ueRepository.save(ue);
     }
 

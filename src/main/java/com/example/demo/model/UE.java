@@ -12,7 +12,9 @@ import jakarta.persistence.OneToMany;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDateTime;
 
@@ -34,6 +36,7 @@ public class UE {
     @ManyToOne
     @JoinColumn(name = "niveau_id", nullable = false)
     @JsonIgnore
+    @JsonProperty("niveau")
     private Niveau niveau;
 
     @ManyToOne
@@ -45,6 +48,8 @@ public class UE {
     @JsonIgnore
     private List<CourseModule> modules = new ArrayList<>();
 
+
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     private LocalDateTime dateAjout;
 
     // Constructeurs
